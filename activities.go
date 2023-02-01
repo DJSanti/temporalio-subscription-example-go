@@ -1,27 +1,17 @@
 package app
 
-//TODO: make this more email-centric
-type Activities struct {
-	Name string
-	Greeting string
-}
+import "context"
 
-// WelcomeEmail
-func (a *Activities) SendWelcomeEmail() error {
-	return err
-}
-
-// TrialCancellationEmail
-func (a *Activities) TrialCancellationEmail() error {
-	return err
-}
-
-// SubscriptionCancellationEmail
-func (a *Activities) SubscriptionCancellationEmail() error {
-	return err
-}
-
-// SubscriptionEndedEmail
-func (a *Activities) SubscriptionEndedEmail() error {
-	return err
+// email activity
+func SendEmail(_ context.Context, billingInfo BillingInfo, emailPending ComposeEmail) {
+	// check for welcome email
+	if billingInfo.EmailsSent == 0 {
+		// send welcome email
+	} else if billingInfo.isCanceled {
+		// send cancellation email
+	} else if !(billingInfo.isSubscribed) {
+		// send parting email
+	} else {
+		// send subscription email
+	}
 }

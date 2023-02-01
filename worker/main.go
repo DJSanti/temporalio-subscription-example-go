@@ -4,29 +4,21 @@ import (
 	"log"
 
 	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
 )
 
-func main () {
-	c, err := client.Dial(client.Options{
+func main() {
+	// create client and worker
+	c, err := client.Dial(client.Options {
 		HostPort: client.DefaultHostPort,
 	})
 	if err != nil {
-		log.Fatalln("Unable to create client.", err)
+		log.Fatalln("Unable to create Temporal Client.", err)
 	}
 	defer c.Close()
 
-	w := worker.New(c, "freeTrialSubscription", worker.Options{})
+	//w := worker.New(c, "SUBSCRIPTION_TASK_QUEUE", worker.Options{})
 
-	w.RegisterWorkflow()
-	w.RegisterWorkflow()
-	w.RegisterActivity()
-	w.RegisterActivity()
-	w.RegisterActivity()
-	w.RegisterActivity()
+	// register free trial workflow and subscription workflow
 
-	err = w.Run(worker.InterruptCh())
-	if err != nil {
-		log.Fatalln("Unable to start Worker.", err)
-	}
+	// register activities
 }

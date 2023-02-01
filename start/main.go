@@ -1,32 +1,15 @@
 package app
 
-import (
-	"log"
-
-	"go.temporal.io/sdk/client"
-)
-
 func main() {
-	c, err := client.NewClient(client.Options{})
-	if err != nil {
-		log.Fatalln("Unable to create Temporal Client.", err)
-	} 
-	defer c.Close()
+	// create client
 
-	workflowID := ""
+	// workflowID format
 
-	options := client.StartWorkflowOptions{
-		ID: "",
-		TaskQueue:"",
-	}
+	// define workflow options
 
-	// state of customer??
+	// define state
 
-	// Signal Handler
+	// define wf execution
 
-	// Query
-
-	// interface
-
-	//print result
+	
 }
