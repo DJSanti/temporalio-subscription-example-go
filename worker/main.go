@@ -1,9 +1,12 @@
-package app
+package main
 
 import (
 	"log"
 
+	"temporalio-subscription-example-go/app"
+
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 )
 
 func main() {
@@ -16,9 +19,14 @@ func main() {
 	}
 	defer c.Close()
 
-	//w := worker.New(c, "SUBSCRIPTION_TASK_QUEUE", worker.Options{})
+	w := worker.New(c, "SUBSCRIPTION_TASK_QUEUE", worker.Options{})
+	// register Activity and Workflow
+	//w.RegisterActivity(a.SendEmail)
+	w.RegisterWorkflow(app.SubscriptionWorkflow)
 
-	// register free trial workflow and subscription workflow
-
-	// register activities
+	// Listen to Task Queue
+	err = w.Run(worker.InterruptCh())
+	if err != nil {
+		log.Fatalln("Unable to start Worker.", err)
+	}
 }
