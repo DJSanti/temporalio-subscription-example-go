@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.temporal.io/sdk/client"
+
+	"temporalio-subscription-example-go/app"
 )
 
 func main() {
@@ -27,13 +29,24 @@ func main() {
 	}
 
 	// define wf execution
-	we, err := c.ExecuteWorkflow(context.Background(), options, SubscriptionWorkflow, "")
+	we, err := c.ExecuteWorkflow(context.Background(), options, app.SubscriptionWorkflow, "")
 	if err != nil {
 		log.Fatalln("Unable to execute Workflow.", err)
 	}
 
-	// something to signal here
-	// signal
-	
+	// signal welcome email
+	update := app.ComposeEmail{Route: app.SignalChannels.WELCOME_EMAIL, Message: "testing..."}
+	err = c.SignalWorkflow(context.Background(), we.GetID(), "", "SEND_WELCOME_EMAIL", update)
 	// query workflow
+	response, err := c.QueryWorkflow(context.Background(), we.GetID(), "", "getBillingInfo")
+	if err != nil {
+		log.Fatalln("Unable to query Workflow.", err)
+	}
+	var result interface{}
+	if err := response.Get(&result); err != nil {
+		log.Fatalln("Unable to decode Query result.", err)
+	}
+	log.Println("Received Query result.", "Result:", result)
+
+	// signals until subscription runs out
 }

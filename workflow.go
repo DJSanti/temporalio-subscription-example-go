@@ -15,11 +15,12 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 	var billingInfo BillingInfo
 
 	// set up query handler
-	err := workflow.SetQueryHandler(ctx, "getBillingInfo", func(input []byte) (billingInfo, error) {	
-		if err != nil {
-			logger.Info("SetQueryHandler failed.", "Error", err)
-		}
+	err := workflow.SetQueryHandler(ctx, "getBillingInfo", func(input []byte) (BillingInfo, error) {	
+		return billingInfo, nil
 	})
+	if err != nil {
+		logger.Info("SetQueryHandler failed.", "Error", err)
+	}
 
 	// set up signal channel(s)
 	welcomeEmailChannel := workflow.GetSignalChannel(ctx, SignalChannels.WELCOME_EMAIL)
@@ -29,8 +30,7 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 
 	isSubscribed := true
 	
-	// workflow logic
-	for (isSubscribed) {
+	for {
 		selector := workflow.NewSelector(ctx)
 		// signal handler for welcome email
 		selector.AddReceive(welcomeEmailChannel, func(c workflow.ReceiveChannel, _ bool) {
@@ -49,6 +49,7 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 
 			SendEmail(billingInfo, PendingEmail)
 			isSubscribed = billingInfo.isSubscribed
+			
 		})
 		// signal handler for cancellation
 		selector.AddReceive(cancelFreeTrialChannel, func(c workflow.ReceiveChannel, _ bool) {
@@ -66,11 +67,11 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 			isSubscribed = billingInfo.isSubscribed
 
 		})
-			// signal handler for expired subscription
+
 		selector.AddReceive(cancelSubscriptionChannel, func (c workflow.ReceiveChannel, _ bool) {
 			var signal interface{}
 			c.Receive(ctx, &signal)
-			PendingEmail.Message = "We're so sorry to see you go—and during your trial period, no less! You will no longer receive any emails from us. Goodbye!"
+			PendingEmail.Message = "We're so sorry to see you go after all this time! You will no longer receive any emails from us. Goodbye!"
 
 			err := mapstructure.Decode(signal, &PendingEmail)
 			if err != nil {
@@ -80,6 +81,7 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 			SendEmail(billingInfo, PendingEmail)
 			isSubscribed = billingInfo.isSubscribed
 		})
+		// signal handler for expired subscription
 		selector.AddReceive(subscriptionEndChannel, func (c workflow.ReceiveChannel, _ bool) {
 			var signal interface{}
 			c.Receive(ctx, &signal)
@@ -93,9 +95,11 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 			SendEmail(billingInfo, PendingEmail)
 			isSubscribed = billingInfo.isSubscribed
 		})
+
+		selector.Select(ctx)
+
+		if !isSubscribed {
+			break
+		}
 	}
 }
-
-
-
-	

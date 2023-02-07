@@ -21,5 +21,6 @@ type BillingInfo struct {
 }
 
 type ComposeEmail struct {
+	Route string
 	Message string
 }
