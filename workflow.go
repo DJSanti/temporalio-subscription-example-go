@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/mitchellh/mapstructure"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -11,7 +10,7 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 	logger := workflow.GetLogger(ctx)
 
 	// declare structs here
-	var PendingEmail ComposeEmail
+	//var PendingEmail ComposeEmail
 	var billingInfo BillingInfo
 
 	// set up query handler
@@ -21,19 +20,12 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 	if err != nil {
 		logger.Info("SetQueryHandler failed.", "Error", err)
 	}
-
-	// set up signal channel(s)
-	welcomeEmailChannel := workflow.GetSignalChannel(ctx, SignalChannels.WELCOME_EMAIL)
-	cancelFreeTrialChannel := workflow.GetSignalChannel(ctx, SignalChannels.CANCEL_FREE_EMAIL)
-	cancelSubscriptionChannel := workflow.GetSignalChannel(ctx, SignalChannels.CANCEL_SUBSCRIPTION_EMAIL)
-	subscriptionEndChannel := workflow.GetSignalChannel(ctx, SignalChannels.SUBSCRIPTION_ENDED_EMAIL)
-
 	isSubscribed := true
 	
 	for {
 		selector := workflow.NewSelector(ctx)
 		// signal handler for welcome email
-		selector.AddReceive(welcomeEmailChannel, func(c workflow.ReceiveChannel, _ bool) {
+		/* selector.AddReceive(welcomeEmailChannel, func(c workflow.ReceiveChannel, _ bool) {
 			var signal interface{}
 			c.Receive(ctx, &signal)
 
@@ -94,7 +86,7 @@ func SubscriptionWorkflow(ctx workflow.Context) {
 			}
 			SendEmail(billingInfo, PendingEmail)
 			isSubscribed = billingInfo.isSubscribed
-		})
+		})*/
 
 		selector.Select(ctx)
 
