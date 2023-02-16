@@ -2,11 +2,10 @@ package main
 
 import (
 	"log"
+	"subscribe_emails"
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
-
-	"temporalio-subscription-example-go/app"
 )
 
 func main() {
@@ -22,8 +21,8 @@ func main() {
 
 	w := worker.New(c, "SUBSCRIPTION_TASK_QUEUE", worker.Options{})
 	// register Activity and Workflow
-	w.RegisterActivity(app.SendEmail)
-	w.RegisterWorkflow(app.SubscriptionWorkflow)
+	w.RegisterActivity(subscribe_emails.SendContentEmail)
+	w.RegisterWorkflow(subscribe_emails.SubscriptionWorkflow)
 
 	// Listen to Task Queue
 	err = w.Run(worker.InterruptCh())

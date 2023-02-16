@@ -1,97 +1,79 @@
-package app
+package subscribe_emails
 
 import (
+	"errors"
+	"time"
+
 	"go.temporal.io/sdk/workflow"
 )
 
 // Workflow definition
-func SubscriptionWorkflow(ctx workflow.Context) {
+func SubscriptionWorkflow(ctx workflow.Context, subscription Subscription) {
 	// set up logger
 	logger := workflow.GetLogger(ctx)
+	logger.Info("Subscription created for " + subscription.EmailAddress)
 
-	// declare structs here
-	//var PendingEmail ComposeEmail
-	var billingInfo BillingInfo
-
-	// set up query handler
-	err := workflow.SetQueryHandler(ctx, "getBillingInfo", func(input []byte) (BillingInfo, error) {	
-		return billingInfo, nil
-	})
-	if err != nil {
-		logger.Info("SetQueryHandler failed.", "Error", err)
+	// set up Activity Options
+	duration := time.Minute
+	ao := workflow.ActivityOptions {
+		StartToCloseTimeout: 10 * time.Minute,
+		WaitForCancellation: true,
 	}
-	isSubscribed := true
-	
-	for {
-		selector := workflow.NewSelector(ctx)
-		// signal handler for welcome email
-		/* selector.AddReceive(welcomeEmailChannel, func(c workflow.ReceiveChannel, _ bool) {
-			var signal interface{}
-			c.Receive(ctx, &signal)
 
-			PendingEmail.Message = "Welcome to your new subscription! This is the very first email and the start of the trial period!"
+	ctx = workflow.WithActivityOptions(ctx, ao)
 
-			err := mapstructure.Decode(signal, &PendingEmail)
-			if err != nil {
-				logger.Error("Invalid Signal type: %v", err)
-				return
-			}
-			billingInfo.Email = "example@google.co"
-			billingInfo.EmailsSent = 0
-
-			SendEmail(billingInfo, PendingEmail)
-			isSubscribed = billingInfo.isSubscribed
-			
-		})
-		// signal handler for cancellation
-		selector.AddReceive(cancelFreeTrialChannel, func(c workflow.ReceiveChannel, _ bool) {
-			var signal interface{}
-			c.Receive(ctx, &signal)
-
-			PendingEmail.Message = "We're so sorry to see you go—and during your trial period, no less! You will no longer receive any emails from us. Goodbye!"
-
-			err := mapstructure.Decode(signal, &PendingEmail)
-			if err != nil {
-				logger.Error("Invalid Signal type: %v", err)
-				return
-			}
-			SendEmail(billingInfo, PendingEmail)
-			isSubscribed = billingInfo.isSubscribed
-
-		})
-
-		selector.AddReceive(cancelSubscriptionChannel, func (c workflow.ReceiveChannel, _ bool) {
-			var signal interface{}
-			c.Receive(ctx, &signal)
-			PendingEmail.Message = "We're so sorry to see you go after all this time! You will no longer receive any emails from us. Goodbye!"
-
-			err := mapstructure.Decode(signal, &PendingEmail)
-			if err != nil {
-				logger.Error("Invalid Signal type: %v", err)
-				return
-			}
-			SendEmail(billingInfo, PendingEmail)
-			isSubscribed = billingInfo.isSubscribed
-		})
-		// signal handler for expired subscription
-		selector.AddReceive(subscriptionEndChannel, func (c workflow.ReceiveChannel, _ bool) {
-			var signal interface{}
-			c.Receive(ctx, &signal)
-			PendingEmail.Message = "It appears that your subscription has come to an end. Farewell!"
-
-			err := mapstructure.Decode(signal, &PendingEmail)
-			if err != nil {
-				logger.Error("Invalid Signal type: %v", err)
-				return
-			}
-			SendEmail(billingInfo, PendingEmail)
-			isSubscribed = billingInfo.isSubscribed
-		})*/
-
-		selector.Select(ctx)
-
-		if !isSubscribed {
-			break
+	// handle subscription
+	defer func() {
+		if !errors.Is(ctx.Err(), workflow.ErrCanceled) {
+			return
 		}
+
+		// Cancellation
+
+		newCtx, _ := workflow.NewDisconnectedContext(ctx)
+		
+		data := EmailInfo {
+			EmailAddress: subscription.EmailAddress,
+			Mail: subscription.Campaign.UnsubscribeEmail,
+		}
+
+		logger.Info("Sending unsubscribe email to " + subscription.EmailAddress)
+
+		err := workflow.ExecuteActivity(newCtx, SendContentEmail, data).Get(newCtx, nil)
+
+		if err != nil {
+			logger.Error("Unable to send unsubscribe message", "Error", err)
+		}
+	}()
+
+	logger.Info("Sending welcome email to " + subscription.EmailAddress)
+
+	data := EmailInfo {
+		EmailAddress: subscription.EmailAddress,
+		Mail: subscription.Campaign.WelcomeEmail,
 	}
+
+	err := workflow.ExecuteActivity(ctx, SendContentEmail, data).Get(ctx, nil)
+
+	if err != nil {
+		logger.Error("Failed to send welcome email", "Error", err)
+	}
+
+	for _, mail := range subscription.Campaign.Mails {
+		data := EmailInfo {
+			EmailAddress: subscription.EmailAddress,
+			Mail: 		  mail,
+		}
+
+		err = workflow.ExecuteActivity(ctx, SendContentEmail, data).Get(ctx, nil)
+
+		if err != nil {
+			logger.Error("Failed to send email " +mail, "Error", err)
+		}
+
+		logger.Info("Sent content email " + mail + " to " + subscription.EmailAddress)
+
+		workflow.Sleep(ctx, duration)
+	}
+
 }

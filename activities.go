@@ -1,23 +1,40 @@
-package app
+package subscribe_emails
 
-import "fmt"
+import (
+	"bufio"
+	"context"
+	"errors"
+	"os"
+
+	"go.temporal.io/sdk/activity"
+)
 
 // email activity
-func SendEmail(billingInfo BillingInfo, pendingEmail ComposeEmail) {
-	// check for welcome email
-	if billingInfo.EmailsSent == 0 {
-		// send welcome email
-		fmt.Printf("Sending welcome email to %s with the following message:\n%s", billingInfo.Email, pendingEmail.Message)
-		billingInfo.EmailsSent++
-		billingInfo.MaxBillingPeriods = 12
-		billingInfo.isSubscribed = true
-	}  else if !(billingInfo.isSubscribed) || (billingInfo.MaxBillingPeriods == billingInfo.EmailsSent) {
-		// send parting email
-		fmt.Printf("Sending email to %s with the following message:\n%s", billingInfo.Email, pendingEmail.Message)
-		billingInfo.isSubscribed = false
-	} else {
-		// send subscription email
-		fmt.Printf("Sending subscription update email to %s with the following message:\n%s", billingInfo.Email, pendingEmail.Message)
-		billingInfo.EmailsSent++
+func SendContentEmail(ctx context.Context, emailInfo EmailInfo) error {
+	logger := activity.GetLogger(ctx)
+	logger.Info("Sending email " + emailInfo.Mail + " to " + emailInfo.EmailAddress)
+
+	message, err := getEmailFromFile(emailInfo.Mail)
+
+	if err != nil {
+		return sendMail(message, emailInfo.EmailAddress)
 	}
+
+	logger.Error("Failed getting email", err)
+	return errors.New("unable to locate message to send")
+}
+
+func getEmailFromFile(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	return scanner.Text(), scanner.Err()
+}
+
+func sendMail(message string, email string) error {
+	return nil
 }
