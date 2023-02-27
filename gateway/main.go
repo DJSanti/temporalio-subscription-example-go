@@ -13,6 +13,11 @@ import (
 var temporalClient client.Client
 var taskQueueName string
 
+func indexHandler(w http.ResponseWriter, _ *http.Request) {
+	_, _ = fmt.Fprint(w, "<h1>Sign up here!")
+	_, _ = fmt.Fprint(w, "<form method='post' action='subscribe'><input required name='email' type='email'><input type='submit' value='Subscribe'>")
+}
+
 func subscribeHandler(w http.ResponseWriter, r *http.Request) {
 	// compose email
 	err := r.ParseForm()
@@ -99,7 +104,7 @@ func getDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	port := "7233"
-	taskQueueName = ""
+	taskQueueName = "subscription_emails"
 
 	var err error
 	temporalClient, err = client.Dial(client.Options {
