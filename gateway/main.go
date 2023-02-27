@@ -117,6 +117,7 @@ func main() {
 
 	fmt.Printf("Starting the web server on port %s\n", port)
 
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/subscribe", subscribeHandler)
 	http.HandleFunc("/unsubscribe", unsubscribeHandler)
 	http.HandleFunc("/getdetails", getDetailsHandler)
